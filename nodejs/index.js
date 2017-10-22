@@ -57,7 +57,7 @@ function getInitialize(req, res) {
 }
 
 function dbGetUser(conn, userId) {
-  return conn.query('SELECT * FROM user WHERE id = ?', [userId])
+  return conn.query('SELECT id, name, display_name FROM user WHERE id = ?', [userId])
     .then(([result]) => result)
 }
 
