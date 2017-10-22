@@ -543,7 +543,7 @@ function fetchUnread(req, res) {
         unread: messageCount
       };
     }
-    const unreadCount = messageCount - havereadMessageInfo.lat_message_count;
+    const unreadCount = messageCount - havereadMessageInfo.last_message_count;
     return {
       channel_id: channelId,
       unread: unreadCount
@@ -619,13 +619,18 @@ function getHistory(req, res) {
   })
 
   formatedMessages.reverse();
-
   return getChannelListInfo(pool, channelId)
     .then(({ channels, description }) => {
       res.render('history', {
         req, channels, channelId, formatedMessages, maxPage, page,
       })
     })
+  // return getChannelListInfo(pool, channelId)
+  //   .then(({ channels, description }) => {
+  //     res.render('history', {
+  //       req, channels, channelId, formatedMessages, maxPage, page,
+  //     })
+  //   })
   // return pool.query('SELECT COUNT(id) as cnt FROM message WHERE channel_id = ?', [channelId])
   //   .then(([row2]) => {
   //     const cnt = row2.cnt
