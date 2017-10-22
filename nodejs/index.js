@@ -114,15 +114,55 @@ const pool = mysql.createPool({
 })
 pool.query = promisify(pool.query, pool)
 
-app.get('/initialize', getInitialize)
-function getInitialize(req, res) {
-  return pool.query('DELETE FROM user WHERE id > 1000')
-    .then(() => pool.query('DELETE FROM image WHERE id > 1001'))
-    .then(() => pool.query('DELETE FROM channel WHERE id > 10'))
-    .then(() => pool.query('DELETE FROM message WHERE id > 10000'))
-    .then(() => pool.query('DELETE FROM haveread'))
-    .then(() => res.status(204).send(''))
+
+const getInitialize = async (req, res) => {
+    await pool.query('DELETE FROM user WHERE id > 1000');
+    await pool.query('DELETE FROM image WHERE id > 1001');
+    await pool.query('DELETE FROM channel WHERE id > 10');
+    await pool.query('DELETE FROM message WHERE id > 10000');
+    await pool.query('DELETE FROM haveread');
+
+    const channels = await pool.query('select id, name, description, created_at, updated_at from channel');
+
+    for (let c of channels) {
+        const channelId = c.id;
+        const messages = await pool.query('select m.id, u.display_name, u.avatar_icon, m.content, m.created_at from message as m inner join user as u on m.user_id = u.id where m.channel_id = ? order by m.id desc', [channelId]);
+
+        channelCache[channelId] = {
+            id: channelId,
+            name: c.name,
+            description: c.description,
+            created_at: c.created_at,
+            updated_at: c.updated_at,
+            messages: messages
+        }
+    }
+
+    const users = await pool.query('select id, name, salt, password, display_name, created_at from user;');
+    for (let u of users) {
+        u.messages = {};
+        const userId = u.id;
+        const messages = await pool.query('select m.channel_id, m.id from message as m where m.user_id = ?', [userId]);
+        console.log(`userId: ${userId}, messages: ${messages.length}`)
+        for (let m of messages) {
+            const channelId = m.channel_id;
+            const messageId = m.id;
+            console.log(userId, channelId, messageId);
+            if (!u.messages[channelId]) {
+                u.messages[channelId] = [messageId];
+            } else {
+                u.messages[channelId].push(messageId)
+            }
+        }
+        usersCache.push(u);
+    }
+    channelCache
+    console.log(`cachedChannels: ${Object.keys(channelCache)}`);
+    console.log(`cachedUsers: ${usersCache.length}`);
+    return res.status(204).send('');
 }
+app.get('/initialize', getInitialize)
+
 
 function dbGetUser(conn, userId) {
   return conn.query('SELECT id, name, display_name FROM user WHERE id = ?', [userId])
