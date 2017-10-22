@@ -780,7 +780,7 @@ function postProfile(req, res) {
     if (!ICON_FILE_NAMES.includes(avatarName)) {
       fs.createReadStream(avatar_icon.path).pipe(fs.createWriteStream('/home/isucon/isubata/webapp/public/icons/' + avatarName));
     }
-    updateUserAvatarIcon(userId, avatar_icon);
+    updateUserAvatarIcon(userId, avatarName);
     // p = p.then(() => pool.query('UPDATE user SET avatar_icon = ? WHERE id = ?', [avatarName, userId]))
   }
 
