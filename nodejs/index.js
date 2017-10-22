@@ -41,6 +41,10 @@ function cacheUser(user) {
     users.push(user);
 }
 
+function findUserByName(name) {
+  return users.find((user) => user.name === name);
+}
+
 const seq = (() => {
     var seq = 0;
     return () => {
@@ -207,24 +211,43 @@ function getLogin(req, res) {
 
 app.post('/login', postLogin)
 function postLogin(req, res) {
-  return pool.query('SELECT salt, password, id FROM user WHERE name = ?', [req.body.name])
-    .then(([row]) => {
-      if (!row) {
-        res.status(403).end()
-        return
-      }
 
-      const { salt, password, id } = row
-      const shasum = crypto.createHash('sha1')
-      shasum.update(salt + req.body.password)
-      const digest = shasum.digest('hex')
-      if (password === digest) {
-        req.session.userId = id
-        res.redirect(303, '/')
-      } else {
-        res.status(403).end()
-      }
-    })
+  const user = findUserByName(req.body.name);
+  
+  if (!user) {
+    res.status(403).end()
+    return
+  }
+
+  const { salt, password, id } = user
+  const shasum = crypto.createHash('sha1')
+  shasum.update(salt + req.body.password)
+  const digest = shasum.digest('hex')
+  if (password === digest) {
+    req.session.userId = id
+    res.redirect(303, '/')
+  } else {
+    res.status(403).end()
+  }
+    
+  // return pool.query('SELECT salt, password, id FROM user WHERE name = ?', [req.body.name])
+  //   .then(([row]) => {
+  //     if (!row) {
+  //       res.status(403).end()
+  //       return
+  //     }
+
+  //     const { salt, password, id } = row
+  //     const shasum = crypto.createHash('sha1')
+  //     shasum.update(salt + req.body.password)
+  //     const digest = shasum.digest('hex')
+  //     if (password === digest) {
+  //       req.session.userId = id
+  //       res.redirect(303, '/')
+  //     } else {
+  //       res.status(403).end()
+  //     }
+  //   })
 }
 
 app.get('/logout', getLogout)
