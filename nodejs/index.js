@@ -612,7 +612,10 @@ function getHistory(req, res) {
     const user = findUserByName(message.user_name);
     return {
       id: message.id,
-      user: user,
+        user: user,
+        user_name: message.user_name,
+        display_name: message.display_name,
+        avatar_icon: message.avatar_icon,
       date: formatDate(message.created_at),
       content: message.content
     };
@@ -622,9 +625,14 @@ function getHistory(req, res) {
 
   return getChannelListInfo(pool, channelId)
     .then(({ channels, description }) => {
-      res.render('history', {
-        req, channels, channelId, formatedMessages, maxPage, page,
-      })
+        res.render('history', {
+            req: req,
+            channels: channels,
+            channelId, channelId,
+            messages: formatedMessages,
+            maxPage: maxPage,
+            page: page
+        });
     })
   // return pool.query('SELECT COUNT(id) as cnt FROM message WHERE channel_id = ?', [channelId])
   //   .then(([row2]) => {
