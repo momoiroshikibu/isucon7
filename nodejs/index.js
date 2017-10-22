@@ -13,6 +13,7 @@ const STATIC_FOLDER = path.join(__dirname, '..', 'public')
 const ICONS_FOLDER = path.join(STATIC_FOLDER, 'icons')
 const AVATAR_MAX_SIZE = 1 * 1024 * 1024
 const PORT = 5000
+const ICON_FILE_NAMES = require('./icon_file_names')
 
 const ect = new ECT({
   root: path.join(__dirname, 'views'),
