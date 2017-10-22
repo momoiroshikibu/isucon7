@@ -35,6 +35,23 @@ app.use((err, req, res, next) => {
   res.status(500).end()
 })
 
+const users = [];
+
+function cacheUser(user) {
+    users.push(user);
+}
+
+const seq = (() => {
+    var seq = 0;
+    return () => {
+        return seq++
+    }
+})();
+
+function getSequence() {
+  return seq();
+}
+
 
 const pool = mysql.createPool({
   connectionLimit: 20,
@@ -100,6 +117,25 @@ function register(conn, user, password) {
     .then(({ insertId }) => insertId)
 }
 
+function register2(name, password) {
+  const salt = randomString(20)
+  const passDigest = crypto.createHash('sha1')
+    .update(salt + password)
+    .digest('hex')
+
+  const userId = getSequence();
+  cacheUser({
+    id: userId,
+    name: name,
+    salt: salt,
+    password: passDigest,
+    display_name: name,
+    created_at: new Date().toString()
+  });
+
+  return userId;
+}
+
 app.get('/', getIndex)
 function getIndex(req, res) {
   if (req.session.userId) {
@@ -150,14 +186,18 @@ function postRegister(req, res) {
     return
   }
 
-  return register(pool, name, password)
-    .then(userId => {
-      req.session.userId = userId
-      res.redirect(303, '/')
-    })
-    .catch(e => {
-      res.status(409).end()
-    })
+  const userId = register2(name, password);
+  req.session.userId = userId;
+  res.redirect(303, '/');
+
+  // return register(pool, name, password)
+  //   .then(userId => {
+  //     req.session.userId = userId
+  //     res.redirect(303, '/')
+  //   })
+  //   .catch(e => {
+  //     res.status(409).end()
+  //   })
 }
 
 app.get('/login', getLogin)
