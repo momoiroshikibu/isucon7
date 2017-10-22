@@ -36,13 +36,22 @@ app.use((err, req, res, next) => {
 })
 
 const users = [];
+const channels = {};
 
 function cacheUser(user) {
-    users.push(user);
+  users.push(user);
 }
 
 function findUserByName(name) {
   return users.find((user) => user.name === name);
+}
+
+function cacheChannel(id, channel) {
+  channels[id] = channel;
+}
+
+function now() {
+  return new Date().toString();
 }
 
 const seq = (() => {
@@ -449,10 +458,22 @@ function postAddChannel(req, res) {
     return
   }
 
-  return pool.query('INSERT INTO channel (name, description, updated_at, created_at) VALUES (?, ?, NOW(), NOW())', [name, description])
-    .then(({ insertId }) => {
-      res.redirect(303, '/channel/' + insertId)
-    })
+  const id = getSequence();
+
+  cacheChannel(id, {
+    id: id,
+    name: name,
+    description: description,
+    created_at: now(),
+    updated_at: now(),
+    messages: []
+  });
+  res.redirect(303, '/channel/' + id);
+
+  // return pool.query('INSERT INTO channel (name, description, updated_at, created_at) VALUES (?, ?, NOW(), NOW())', [name, description])
+  //   .then(({ insertId }) => {
+  //     res.redirect(303, '/channel/' + insertId)
+  //   })
 }
 
 app.post('/profile', loginRequired, upload.single('avatar_icon'), postProfile)
