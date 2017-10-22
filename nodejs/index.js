@@ -54,6 +54,16 @@ function findUserById(id) {
   return usersCache.find((user) => user.id === id);  
 }
 
+function updateUserAvatarIcon(userId, avatarIcon) {
+  const user = findUserById(userId);
+  user.avatar_icon = avatarIcon;
+}
+
+function updateUserDisplayName(userId, displayName) {
+  const user = findUserById(userId);
+  user.display_name = displayName;
+}
+
 function cacheChannel(id, channel) {
   channelCache[id] = channel;
 }
@@ -130,11 +140,15 @@ function loginRequired(req, res, next) {
   }
 
   req.userId = req.session.userId
-  return dbGetUser(pool, req.userId)
-    .then(user => {
-      req.user = user
-      next()
-    })
+  const user = findUserById(req.userId);
+  req.user = user
+  next();
+  
+  // return dbGetUser(pool, req.userId)
+  //   .then(user => {
+  //     req.user = user
+  //     next()
+  //   })
 }
 
 function randomString(len) {
@@ -528,54 +542,102 @@ function postProfile(req, res) {
     return
   }
 
-  return dbGetUser(pool, userId)
-    .then(user => {
-      if (!user) {
-        res.status(403).end()
+  const user = findUserById(userId);
+
+  if (!user) {
+    res.status(403).end()
+    return
+  }
+
+  const { display_name } = req.body
+  const avatar_icon = req.file
+  let avatarName, avatarData
+
+  // let p = Promise.resolve()
+  if (avatar_icon) {
+    if (avatar_icon.originalname) {
+      const ext = path.extname(avatar_icon.originalname) || ''
+      if (!['.jpg', '.jpeg', '.png', '.gif'].includes(ext)) {
+        res.status(400).end()
         return
       }
 
-      const { display_name } = req.body
-      const avatar_icon = req.file
-      let avatarName, avatarData
-
-      let p = Promise.resolve()
-      if (avatar_icon) {
-        if (avatar_icon.originalname) {
-          const ext = path.extname(avatar_icon.originalname) || ''
-          if (!['.jpg', '.jpeg', '.png', '.gif'].includes(ext)) {
-            res.status(400).end()
-            return
-          }
-
-          if (avatar_icon.size > AVATAR_MAX_SIZE) {
-            res.status(400).end()
-            return
-          }
-
-          const data = fs.readFileSync(avatar_icon.path)
-          const shasum = crypto.createHash('sha1')
-          shasum.update(data)
-          const digest = shasum.digest('hex')
-
-          avatarName = digest + (ext ? `.${ext}` : '')
-          avatarData = data
-        }
-      }
-      if (avatarName && avatarData) {
-
-        if (!ICON_FILE_NAMES.includes(avatarName)) {
-          fs.createReadStream(avatar_icon.path).pipe(fs.createWriteStream('/home/isucon/isubata/webapp/public/icons/' + avatarName));
-        }
-        p = p.then(() => pool.query('UPDATE user SET avatar_icon = ? WHERE id = ?', [avatarName, userId]))
+      if (avatar_icon.size > AVATAR_MAX_SIZE) {
+        res.status(400).end()
+        return
       }
 
-      if (display_name) {
-        p = p.then(() => pool.query('UPDATE user SET display_name = ? WHERE id = ?', [display_name, userId]))
-      }
+      const data = fs.readFileSync(avatar_icon.path)
+      const shasum = crypto.createHash('sha1')
+      shasum.update(data)
+      const digest = shasum.digest('hex')
 
-      return p.then(() => res.redirect(303, '/'))
-    })
+      avatarName = digest + (ext ? `.${ext}` : '')
+      avatarData = data
+    }
+  }
+  if (avatarName && avatarData) {
+
+    if (!ICON_FILE_NAMES.includes(avatarName)) {
+      fs.createReadStream(avatar_icon.path).pipe(fs.createWriteStream('/home/isucon/isubata/webapp/public/icons/' + avatarName));
+    }
+    updateUserAvatarIcon(userId, avatar_icon);
+    // p = p.then(() => pool.query('UPDATE user SET avatar_icon = ? WHERE id = ?', [avatarName, userId]))
+  }
+
+  if (display_name) {
+    updateUserDisplayName(userId, display_name);
+  }
+
+  res.redirect(303, '/');
+  // return dbGetUser(pool, userId)
+  //   .then(user => {
+  //     if (!user) {
+  //       res.status(403).end()
+  //       return
+  //     }
+
+  //     const { display_name } = req.body
+  //     const avatar_icon = req.file
+  //     let avatarName, avatarData
+
+  //     let p = Promise.resolve()
+  //     if (avatar_icon) {
+  //       if (avatar_icon.originalname) {
+  //         const ext = path.extname(avatar_icon.originalname) || ''
+  //         if (!['.jpg', '.jpeg', '.png', '.gif'].includes(ext)) {
+  //           res.status(400).end()
+  //           return
+  //         }
+
+  //         if (avatar_icon.size > AVATAR_MAX_SIZE) {
+  //           res.status(400).end()
+  //           return
+  //         }
+
+  //         const data = fs.readFileSync(avatar_icon.path)
+  //         const shasum = crypto.createHash('sha1')
+  //         shasum.update(data)
+  //         const digest = shasum.digest('hex')
+
+  //         avatarName = digest + (ext ? `.${ext}` : '')
+  //         avatarData = data
+  //       }
+  //     }
+  //     if (avatarName && avatarData) {
+
+  //       if (!ICON_FILE_NAMES.includes(avatarName)) {
+  //         fs.createReadStream(avatar_icon.path).pipe(fs.createWriteStream('/home/isucon/isubata/webapp/public/icons/' + avatarName));
+  //       }
+  //       p = p.then(() => pool.query('UPDATE user SET avatar_icon = ? WHERE id = ?', [avatarName, userId]))
+  //     }
+
+  //     if (display_name) {
+  //       p = p.then(() => pool.query('UPDATE user SET display_name = ? WHERE id = ?', [display_name, userId]))
+  //     }
+
+  //     return p.then(() => res.redirect(303, '/'))
+  //   })
 }
 
 function ext2mime(ext) {
