@@ -248,18 +248,16 @@ function getIndex(req, res) {
 }
 
 function getChannelListInfo (conn, focusChannelId = null) {
-  return conn.query('SELECT id, name FROM channel ORDER BY id')
-    .then(channels => {
-      let description = ''
-      channels.forEach((channel) => {
-        if (channel.id == focusChannelId) {
-          description = channel.description
+    return Object.keys(channelCache).map((id) => {
+        const c = channelCache[id];
+        return {
+            id: c.id,
+            name: c.name,
+            description: (c.id == focusChannelId)? c.description : ''
         }
-      })
-
-      return { channels, description }
-    })
+    });
 }
+
 
 app.get('/channel/:channelId', loginRequired, getChannel)
 function getChannel(req, res) {
