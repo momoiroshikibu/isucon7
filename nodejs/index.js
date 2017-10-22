@@ -317,6 +317,13 @@ function postRegister(req, res) {
   }
 
   const userId = register2(name, password);
+  if (usersCache.includes((u) => {return u.name === name})) {
+    res.status(409).end()
+    return
+  }
+
+
+  const userId = register2(name, password);
   req.session.userId = userId;
   res.redirect(303, '/');
 
