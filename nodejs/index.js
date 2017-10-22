@@ -72,6 +72,10 @@ function findChannelById(id) {
   return channelCache[id];
 }
 
+function getChannelIds() {
+  return Object.keys(channelCache);
+}
+
 function addMessage(channelId, userId, content) {
   const channel = findChannelById(channelId);
   const user = findUserById(userId);
@@ -445,34 +449,56 @@ function fetchUnread(req, res) {
     res.status(403).end()
     return
   }
+  const channelIds = getChannelIds();
+  const user = findUserById(userId);
+  
+  const results = channelIds.map((channelId) => {
+    const channel = findChannelById(channelId);
+    const messageCount = channel.messages.length;
+    
+    const havereadMessageInfo = user.haveread[channelId];
+    if (havereadMessageInfo == null) {
+      return {
+        channel_id: channelId,
+        unread: messageCount
+      };
+    }
+    const unreadCount = messageCount - havereadMessageInfo.lat_message_count;
+    return {
+      channel_id: channelId,
+      unread: unreadCount
+    };
+  });
 
-  return sleep(1.0)
-    .then(() => pool.query('SELECT id FROM channel'))
-    .then(rows => {
-      const channelIds = rows.map(row => row.id)
-      const results = []
-      let p = Promise.resolve()
+  res.json(results);
+  
+  // return sleep(1.0)
+  //   .then(() => pool.query('SELECT id FROM channel'))
+  //   .then(rows => {
+  //     const channelIds = rows.map(row => row.id)
+  //     const results = []
+  //     let p = Promise.resolve()
 
-      channelIds.forEach(channelId => {
-        p = p.then(() => pool.query('SELECT message_id FROM haveread WHERE user_id = ? AND channel_id = ?', [userId, channelId]))
-          .then(([row]) => {
-            if (row) {
-              return pool.query('SELECT COUNT(id) as cnt FROM message WHERE channel_id = ? AND ? < id', [channelId, row.message_id])
-            } else {
-              return pool.query('SELECT COUNT(id) as cnt FROM message WHERE channel_id = ?', [channelId])
-            }
-          })
-          .then(([row3]) => {
-            const r = {}
-            r.channel_id = channelId
-            r.unread = row3.cnt
-            results.push(r)
-          })
-      })
+  //     channelIds.forEach(channelId => {
+  //       p = p.then(() => pool.query('SELECT message_id FROM haveread WHERE user_id = ? AND channel_id = ?', [userId, channelId]))
+  //         .then(([row]) => {
+  //           if (row) {
+  //             return pool.query('SELECT COUNT(id) as cnt FROM message WHERE channel_id = ? AND ? < id', [channelId, row.message_id])
+  //           } else {
+  //             return pool.query('SELECT COUNT(id) as cnt FROM message WHERE channel_id = ?', [channelId])
+  //           }
+  //         })
+  //         .then(([row3]) => {
+  //           const r = {}
+  //           r.channel_id = channelId
+  //           r.unread = row3.cnt
+  //           results.push(r)
+  //         })
+  //     })
 
-      return p.then(() => results)
-    })
-    .then(results => res.json(results))
+  //     return p.then(() => results)
+  //   })
+  //   .then(results => res.json(results))
 }
 
 app.get('/history/:channelId', loginRequired, getHistory)
@@ -569,7 +595,7 @@ function postAddChannel(req, res) {
   res.redirect(303, '/channel/' + id);
 
   // return pool.query('INSERT INTO channel (name, description, updated_at, created_at) VALUES (?, ?, NOW(), NOW())', [name, description])
-  //   .then(({ insertId }) => {
+  //   .then(({ insertId }> {
   //     res.redirect(303, '/channel/' + insertId)
   //   })
 }
