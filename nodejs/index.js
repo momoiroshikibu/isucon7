@@ -79,7 +79,7 @@ function getChannelIds() {
 function addMessage(channelId, userId, content) {
   const channel = findChannelById(channelId);
   const user = findUserById(userId);
-  const messageId = `message_${getSequence()}`;
+  const messageId = `message_${getMessageSequence()}`;
   channel.messages.push({
     id: messageId,
     display_name: user.display_name,
@@ -96,14 +96,36 @@ function addMessage(channelId, userId, content) {
   channelIds.push(messageId); 
 }
 
-const seq = (() => {
-    var seq = 0;
-    return () => {
-        return seq++
-    }
-})();
+function getUserSequence() {
+    const seq = (() => {
+        var seq = 1001;
+        return () => {
+            return seq++
+        }
+    })()
 
-function getSequence() {
+  return seq();
+}
+
+function getChannelSequence() {
+    const seq = (() => {
+        var seq = 11;
+        return () => {
+            return seq++
+        }
+    })()
+
+  return seq();
+}
+
+function getMessageSequence() {
+    const seq = (() => {
+        var seq = 10001;
+        return () => {
+            return seq++
+        }
+    })()
+
   return seq();
 }
 
@@ -142,7 +164,7 @@ const getInitialize = async (req, res) => {
         }
     }
 
-    const users = await pool.query('select id, name, salt, password, display_name, created_at from user;');
+    const users = await pool.query('select id, name, salt, password, display_name, created_at, avatar_icon from user;');
     for (let u of users) {
         u.messages = {};
         const userId = u.id;
@@ -222,7 +244,7 @@ function register2(name, password) {
     .update(salt + password)
     .digest('hex')
 
-  const userId = getSequence();
+  const userId = getUserSequence();
   cacheUser({
     id: userId,
     name: name,
@@ -687,7 +709,7 @@ function postAddChannel(req, res) {
     return
   }
 
-  const id = getSequence();
+  const id = getChannelSequence();
 
   cacheChannel(id, {
     id: id,
