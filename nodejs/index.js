@@ -506,45 +506,84 @@ function getHistory(req, res) {
   let page = parseInt(req.query.page || '1')
 
   const N = 20
-  return pool.query('SELECT COUNT(id) as cnt FROM message WHERE channel_id = ?', [channelId])
-    .then(([row2]) => {
-      const cnt = row2.cnt
-      const maxPage = Math.max(Math.ceil(cnt / N), 1)
 
-      if (isNaN(page) || page < 1 || page > maxPage) {
-        res.status(400).end()
-        return
-      }
+  const channel = findChannelById(channelId);
+  const cnt = channel.messages.length;
+  const maxPage = Math.max(Math.ceil(cnt / N), 1)
 
-      return pool.query('SELECT id, user_id, content, created_at FROM message WHERE channel_id = ? ORDER BY id DESC LIMIT ? OFFSET ?', [channelId, N, (page - 1) * N])
-        .then(rows => {
-          const messages = []
-          let p = Promise.resolve()
-          rows.forEach(row => {
-            const r = {}
-            r.id = row.id
-            p = p.then(() => {
-              return pool.query('SELECT name, display_name, avatar_icon FROM user WHERE id = ?', [row.user_id])
-                .then(([user]) => {
-                  r.user = user
-                  r.date = formatDate(row.created_at)
-                  r.content = row.content
-                  messages.push(r)
-                })
-            })
-          })
+  if (isNaN(page) || page < 1 || page > maxPage) {
+    res.status(400).end()
+    return
+  }
 
-          return p.then(() => {
-            messages.reverse()
-            return getChannelListInfo(pool, channelId)
-              .then(({ channels, description }) => {
-                res.render('history', {
-                  req, channels, channelId, messages, maxPage, page,
-                })
-              })
-          })
+  const messages = channel.messages.slice();
+
+  messages.sort((a,b) => {
+    if( a.id > b.id ) return -1;
+    if( a.id < b.id ) return 1;
+    return 0;
+  });
+
+  const firstIndex = (page - 1) * N;
+  const slicedMessages = messages.slice(firstIndex, firstIndex + N);
+
+  const formatedMessages = slicedMessages.map((message) => {
+    const user = findUserByName(message.display_name);
+    return {
+      id: message.id,
+      user: user,
+      date: formatDate(message.created_at),
+      content: message.content
+    };
+  })
+
+  formatedMessages.reverse();
+
+  return getChannelListInfo(pool, channelId)
+    .then(({ channels, description }) => {
+      res.render('history', {
+        req, channels, channelId, formatedMessages, maxPage, page,
       })
     })
+  // return pool.query('SELECT COUNT(id) as cnt FROM message WHERE channel_id = ?', [channelId])
+  //   .then(([row2]) => {
+  //     const cnt = row2.cnt
+  //     const maxPage = Math.max(Math.ceil(cnt / N), 1)
+
+  //     if (isNaN(page) || page < 1 || page > maxPage) {
+  //       res.status(400).end()
+  //       return
+  //     }
+
+  //     return pool.query('SELECT id, user_id, content, created_at FROM message WHERE channel_id = ? ORDER BY id DESC LIMIT ? OFFSET ?', [channelId, N, (page - 1) * N])
+  //       .then(rows => {
+  //         const messages = []
+  //         let p = Promise.resolve()
+  //         rows.forEach(row => {
+  //           const r = {}
+  //           r.id = row.id
+  //           p = p.then(() => {
+  //             return pool.query('SELECT name, display_name, avatar_icon FROM user WHERE id = ?', [row.user_id])
+  //               .then(([user]) => {
+  //                 r.user = user
+  //                 r.date = formatDate(row.created_at)
+  //                 r.content = row.content
+  //                 messages.push(r)
+  //               })
+  //           })
+  //         })
+
+  //         return p.then(() => {
+  //           messages.reverse()
+  //           return getChannelListInfo(pool, channelId)
+  //             .then(({ channels, description }) => {
+  //               res.render('history', {
+  //                 req, channels, channelId, messages, maxPage, page,
+  //               })
+  //             })
+  //         })
+  //     })
+  //   })
 }
 
 app.get('/profile/:userName', loginRequired, getProfile)
