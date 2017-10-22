@@ -110,7 +110,7 @@ function getIndex(req, res) {
 }
 
 function getChannelListInfo (conn, focusChannelId = null) {
-  return conn.query('SELECT * FROM channel ORDER BY id')
+  return conn.query('SELECT id, name FROM channel ORDER BY id')
     .then(channels => {
       let description = ''
       channels.forEach((channel) => {
