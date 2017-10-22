@@ -2,10 +2,10 @@
 
 <div id="history">
   <% for msg in @messages : %>
-	<div class="media message">
-		<img class="avatar d-flex align-self-start mr-3" src="/icons/<%= msg.user.avatar_icon %>" alt="no avatar">
+  <div class="media message">
+		<img class="avatar d-flex align-self-start mr-3" src="/icons/<%= msg.avatar_icon %>" alt="no avatar">
 		<div class="media-body">
-			<h5 class="mt-0"><a href="/profile/<%= msg.user.name %>"><%= msg.user.display_name %>@<%= msg.user.name %></a></h5>
+			<h5 class="mt-0"><a href="/profile/<%= msg.user_name %>"><%= msg.display_name %>@<%= msg.user_name %></a></h5>
 			<p class="content"><%= msg.content %></p>
       <p class="message-date"><%= msg.date %></p>
 		</div>
