@@ -35,12 +35,12 @@ app.use((err, req, res, next) => {
   res.status(500).end()
 })
 
+
 const pool = mysql.createPool({
   connectionLimit: 20,
-  host: process.env.ISUBATA_DB_HOST || 'localhost',
-  port: process.env.ISUBATA_DB_PORT || '3306',
-  user: process.env.ISUBATA_DB_USER || 'root',
-  password: process.env.ISUBATA_DB_PASSWORD || '',
+  socketPath: '/var/run/mysqld/mysqld.sock',
+  user: 'isucon', //process.env.ISUBATA_DB_USER || 'root',
+  password: 'isucon',
   database: 'isubata',
   charset: 'utf8mb4',
 })
