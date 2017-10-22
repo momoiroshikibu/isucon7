@@ -230,7 +230,7 @@ function getMessage(req, res) {
   }
 
   const { channel_id, last_message_id } = req.query
-  return pool.query('SELECT * FROM message WHERE id > ? AND channel_id = ? ORDER BY id DESC LIMIT 100', [last_message_id, channel_id])
+  return pool.query('SELECT id, user_id, content, created_at FROM message WHERE id > ? AND channel_id = ? ORDER BY id DESC LIMIT 100', [last_message_id, channel_id])
     .then(rows => {
       const response = []
       let p = Promise.resolve()
@@ -284,12 +284,12 @@ function fetchUnread(req, res) {
       let p = Promise.resolve()
 
       channelIds.forEach(channelId => {
-        p = p.then(() => pool.query('SELECT * FROM haveread WHERE user_id = ? AND channel_id = ?', [userId, channelId]))
+        p = p.then(() => pool.query('SELECT message_id FROM haveread WHERE user_id = ? AND channel_id = ?', [userId, channelId]))
           .then(([row]) => {
             if (row) {
-              return pool.query('SELECT COUNT(*) as cnt FROM message WHERE channel_id = ? AND ? < id', [channelId, row.message_id])
+              return pool.query('SELECT COUNT(id) as cnt FROM message WHERE channel_id = ? AND ? < id', [channelId, row.message_id])
             } else {
-              return pool.query('SELECT COUNT(*) as cnt FROM message WHERE channel_id = ?', [channelId])
+              return pool.query('SELECT COUNT(id) as cnt FROM message WHERE channel_id = ?', [channelId])
             }
           })
           .then(([row3]) => {
@@ -311,7 +311,7 @@ function getHistory(req, res) {
   let page = parseInt(req.query.page || '1')
 
   const N = 20
-  return pool.query('SELECT COUNT(*) as cnt FROM message WHERE channel_id = ?', [channelId])
+  return pool.query('SELECT COUNT(id) as cnt FROM message WHERE channel_id = ?', [channelId])
     .then(([row2]) => {
       const cnt = row2.cnt
       const maxPage = Math.max(Math.ceil(cnt / N), 1)
@@ -321,7 +321,7 @@ function getHistory(req, res) {
         return
       }
 
-      return pool.query('SELECT * FROM message WHERE channel_id = ? ORDER BY id DESC LIMIT ? OFFSET ?', [channelId, N, (page - 1) * N])
+      return pool.query('SELECT id, user_id, content, created_at FROM message WHERE channel_id = ? ORDER BY id DESC LIMIT ? OFFSET ?', [channelId, N, (page - 1) * N])
         .then(rows => {
           const messages = []
           let p = Promise.resolve()
