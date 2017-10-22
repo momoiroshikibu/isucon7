@@ -164,7 +164,7 @@ const getInitialize = async (req, res) => {
         }
     }
 
-    const users = await pool.query('select id, name, salt, password, display_name, created_at from user;');
+    const users = await pool.query('select id, name, salt, password, display_name, created_at, avatar_icon from user;');
     for (let u of users) {
         u.messages = {};
         const userId = u.id;
