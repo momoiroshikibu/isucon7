@@ -35,23 +35,51 @@ app.use((err, req, res, next) => {
   res.status(500).end()
 })
 
-const users = [];
-const channels = {};
+function now() {
+  return new Date().toString();
+}
+
+const usersCache = [];
+const channelCache = {};
 
 function cacheUser(user) {
-  users.push(user);
+  usersCache.push(user);
 }
 
 function findUserByName(name) {
-  return users.find((user) => user.name === name);
+  return usersCache.find((user) => user.name === name);
+}
+
+function findUserById(id) {
+  return usersCache.find((user) => user.id === id);  
 }
 
 function cacheChannel(id, channel) {
-  channels[id] = channel;
+  channelCache[id] = channel;
 }
 
-function now() {
-  return new Date().toString();
+function findChannelById(id) {
+  return channelCache[id];
+}
+
+function addMessage(channelId, userId, content) {
+  const channel = findChannelById(channelId);
+  const user = findUserById(userId);
+  const messageId = `message_${getSequence()}`;
+  channel.messages.push({
+    id: messageId,
+    display_name: user.display_name,
+    avatar_icon: user.avatar_icon,
+    created_at: now(),
+    content: content
+  });
+
+  if (user.messages[channel.id] == null) {
+    user.messages[channel.id] = [];
+  }
+
+  const channelIds = user.messages[channel.id];
+  channelIds.push(messageId); 
 }
 
 const seq = (() => {
@@ -143,7 +171,10 @@ function register2(name, password) {
     salt: salt,
     password: passDigest,
     display_name: name,
-    created_at: new Date().toString()
+    avatar_icon: 'default.png',
+    created_at: new Date().toString(),
+    messages: {},
+    haveread: {}
   });
 
   return userId;
@@ -269,17 +300,30 @@ app.post('/message', postMessage)
 function postMessage(req, res) {
   const { userId } = req.session
 
-  return dbGetUser(pool, userId)
-    .then(user => {
-      const { channel_id, message } = req.body
-      if (!user || !channel_id || !message) {
-        res.status(403).end()
-        return
-      }
+  const user = findUserById(userId);
 
-      return dbAddMessage(pool, channel_id, userId, message)
-        .then(() => res.status(204).end(''))
-    })
+  const { channel_id, message } = req.body
+  if (!user || !channel_id || !message) {
+    res.status(403).end()
+    return
+  }
+
+  addMessage(channel_id, userId, message);
+  res.status(204).end('');
+
+  // return dbAddMessage(pool, channel_id, userId, message)
+  //   .then(() => res.status(204).end(''))
+  // return dbGetUser(pool, userId)
+  //   .then(user => {
+  //     const { channel_id, message } = req.body
+  //     if (!user || !channel_id || !message) {
+  //       res.status(403).end()
+  //       return
+  //     }
+
+  //     return dbAddMessage(pool, channel_id, userId, message)
+  //       .then(() => res.status(204).end(''))
+  //   })
 }
 
 function zeroPadd (num, digit) {
@@ -429,7 +473,7 @@ function getProfile(req, res) {
   const { userName } = req.params
   return getChannelListInfo(pool)
     .then(({ channels }) => {
-      return pool.query('SELECT name, display_name, avatar_icon FROM user WHERE name = ?', [userName])
+      return pool.query('SELECT id, name, display_name, avatar_icon FROM user WHERE name = ?', [userName])
         .then(([user]) => {
           if (!user) {
             res.status(404).end()
