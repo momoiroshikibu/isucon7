@@ -435,7 +435,10 @@ function postProfile(req, res) {
         }
       }
       if (avatarName && avatarData) {
-        p = p.then(() => pool.query('INSERT INTO image (name, data) VALUES (?, _binary ?)', [avatarName, avatarData]))
+
+        if (!ICON_FILE_NAMES.includes(avatarName)) {
+          fs.createReadStream(avatar_icon.path).pipe(fs.createWriteStream('/home/isucon/isubata/webapp/public/icons/' + avatarName));
+        }
         p = p.then(() => pool.query('UPDATE user SET avatar_icon = ? WHERE id = ?', [avatarName, userId]))
       }
 
