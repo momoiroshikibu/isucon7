@@ -249,16 +249,22 @@ function getIndex(req, res) {
 
 function getChannelListInfo (conn, focusChannelId = null) {
     return new Promise((resolve, reject) => {
-        resolve(Object.keys(channelCache).map((id) => {
+        let description = ''
+        const channels = Object.keys(channelCache).map((id) => {
             const c = channelCache[id];
+            if (c.id == focusChannelId) {
+                description = c.description;
+            }
+
             return {
                 id: c.id,
-                name: c.name,
-                description: (c.id == focusChannelId)? c.description : ''
+                name: c.name
             }
-        }));
+        });
+        resolve({channels: channels, description: description});
     });
 }
+
 
 app.get('/channel/:channelId', loginRequired, getChannel)
 function getChannel(req, res) {
