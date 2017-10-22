@@ -167,7 +167,7 @@ function getLogin(req, res) {
 
 app.post('/login', postLogin)
 function postLogin(req, res) {
-  return pool.query('SELECT * FROM user WHERE name = ?', [req.body.name])
+  return pool.query('SELECT salt, password, id FROM user WHERE name = ?', [req.body.name])
     .then(([row]) => {
       if (!row) {
         res.status(403).end()
@@ -357,7 +357,7 @@ function getProfile(req, res) {
   const { userName } = req.params
   return getChannelListInfo(pool)
     .then(({ channels }) => {
-      return pool.query('SELECT * FROM user WHERE name = ?', [userName])
+      return pool.query('SELECT name, display_name, avatar_icon FROM user WHERE name = ?', [userName])
         .then(([user]) => {
           if (!user) {
             res.status(404).end()
