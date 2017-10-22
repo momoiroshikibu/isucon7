@@ -248,16 +248,17 @@ function getIndex(req, res) {
 }
 
 function getChannelListInfo (conn, focusChannelId = null) {
-    return Object.keys(channelCache).map((id) => {
-        const c = channelCache[id];
-        return {
-            id: c.id,
-            name: c.name,
-            description: (c.id == focusChannelId)? c.description : ''
-        }
+    return new Promise((resolve, reject) => {
+        resolve(Object.keys(channelCache).map((id) => {
+            const c = channelCache[id];
+            return {
+                id: c.id,
+                name: c.name,
+                description: (c.id == focusChannelId)? c.description : ''
+            }
+        }));
     });
 }
-
 
 app.get('/channel/:channelId', loginRequired, getChannel)
 function getChannel(req, res) {
