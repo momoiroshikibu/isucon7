@@ -97,38 +97,39 @@ function addMessage(channelId, userId, content) {
   channelIds.push(messageId); 
 }
 
+const seq1 = (() => {
+  var seq = 1001;
+  return () => {
+    return seq++
+  }
+})()
 function getUserSequence() {
-    const seq = (() => {
-        var seq = 1001;
-        return () => {
-            return seq++
-        }
-    })()
 
-  return seq();
+  return seq1();
 }
 
+const seq2 = (() => {
+  var seq = 11;
+  return () => {
+    return seq++
+  }
+})()
 function getChannelSequence() {
-    const seq = (() => {
-        var seq = 11;
-        return () => {
-            return seq++
-        }
-    })()
 
-  return seq();
+  return seq2();
 }
 
+const seq3 = (() => {
+  var seq = 10001;
+  return () => {
+    return seq++
+  }
+})()
+  
 function getMessageSequence() {
-    const seq = (() => {
-        var seq = 10001;
-        return () => {
-            return seq++
-        }
-    })()
-
-  return seq();
+  return seq3();
 }
+
 
 
 const pool = mysql.createPool({
@@ -316,12 +317,12 @@ function postRegister(req, res) {
     return
   }
 
-  const userId = register2(name, password);
-  if (usersCache.includes((u) => {return u.name === name})) {
+  // const userId = register2(name, password);
+  
+  if (usersCache.find((u) => {return u.name === name})) {
     res.status(409).end()
     return
   }
-
 
   const userId = register2(name, password);
   req.session.userId = userId;
