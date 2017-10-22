@@ -82,6 +82,7 @@ function addMessage(channelId, userId, content) {
   const messageId = `message_${getMessageSequence()}`;
   channel.messages.push({
     id: messageId,
+    user_name: user.name,
     display_name: user.display_name,
     avatar_icon: user.avatar_icon,
     created_at: now(),
@@ -152,7 +153,7 @@ const getInitialize = async (req, res) => {
 
     for (let c of channels) {
         const channelId = c.id;
-        const messages = await pool.query('select m.id, u.display_name, u.avatar_icon, m.content, m.created_at from message as m inner join user as u on m.user_id = u.id where m.channel_id = ? order by m.id desc', [channelId]);
+        const messages = await pool.query('select m.id, u.name as user_name, u.display_name, u.avatar_icon, m.content, m.created_at from message as m inner join user as u on m.user_id = u.id where m.channel_id = ? order by m.id desc', [channelId]);      
 
         channelCache[channelId] = {
             id: channelId,
@@ -447,7 +448,7 @@ function getMessage(req, res) {
   
   
   const formatedMessages = slicedMessages.map((message) => {
-    const user = findUserByName(message.display_name);
+    const user = findUserByName(message.user_name);
     return {
       id: message.id,
       user: user,
@@ -608,7 +609,7 @@ function getHistory(req, res) {
   const slicedMessages = messages.slice(firstIndex, firstIndex + N);
 
   const formatedMessages = slicedMessages.map((message) => {
-    const user = findUserByName(message.display_name);
+    const user = findUserByName(message.user_name);
     return {
       id: message.id,
       user: user,
